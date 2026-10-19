@@ -1,0 +1,18 @@
+#cloud-config
+hostname: ${hostname}
+fqdn: ${fqdn}
+
+# Ansible writes /etc/hosts entries for all nodes, not cloud-init
+manage_etc_hosts: false
+disable_root: true
+ssh_pwauth: false
+users:
+  - name: ${admin_user}
+    shell: /bin/bash
+    groups: [sudo]
+    lock_passwd: true
+    # LAB-ONLY: passwordless sudo so Ansible can become root without a stored password.
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+package_update: false

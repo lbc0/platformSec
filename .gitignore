@@ -1,0 +1,32 @@
+# Terraform: state can contain sensitive values; the lock file IS committed
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+override.tf
+override.tf.json
+terraform/terraform.tfvars
+*.auto.tfvars
+
+# Ansible
+ansible/.known_hosts
+ansible/inventory/generated.json
+ansible/.vault_pass
+ansible/collections/
+
+# Credentials and generated material (cosign.pub is public and allowed)
+.kube/
+*.kubeconfig
+*.pem
+*.key
+cosign.key
+*.age
+*.snap
+*.env
+
+# Local
+.cache/
+.direnv/
+.trivycache/
+result

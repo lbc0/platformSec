@@ -1,0 +1,13 @@
+version: 2
+ethernets:
+  nic0:
+    match:
+      macaddress: "${mac}"
+    set-name: eth0
+    addresses:
+      - ${ip}/24
+    routes:
+      - to: default
+        via: ${gateway}
+    nameservers:
+      addresses: [${gateway}]

@@ -1,0 +1,35 @@
+- name: Kubernetes apt signing key
+  ansible.builtin.get_url:
+    url: "{{ k8s_apt_repo }}Release.key"
+    dest: "/etc/apt/keyrings/kubernetes-{{ k8s_minor }}.asc"
+    mode: "0644"
+
+- name: Kubernetes apt repository
+  ansible.builtin.deb822_repository:
+    name: kubernetes
+    types: deb
+    uris: "{{ k8s_apt_repo }}"
+    suites: /
+    signed_by: "/etc/apt/keyrings/kubernetes-{{ k8s_minor }}.asc"
+    state: present
+
+- name: Install pinned kubelet, kubeadm, kubectl
+  ansible.builtin.apt:
+    name:
+      - "kubelet={{ k8s_patch }}-*"
+      - "kubeadm={{ k8s_patch }}-*"
+      - "kubectl={{ k8s_patch }}-*"
+    state: present
+    update_cache: true
+    lock_timeout: 300
+
+- name: Hold the Kubernetes packages (no surprise upgrades)
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop: [kubelet, kubeadm, kubectl]
+
+- name: Enable kubelet (it waits for kubeadm until the node is initialised or joined)
+  ansible.builtin.systemd:
+    name: kubelet
+    enabled: true

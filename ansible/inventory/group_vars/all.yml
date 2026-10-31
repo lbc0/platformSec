@@ -1,0 +1,13 @@
+admin_user: lab
+domain_name: lab.test
+
+k8s_minor: "1.36"
+k8s_patch: "1.36.4"
+k8s_apt_repo: "https://pkgs.k8s.io/core:/stable:/v{{ k8s_minor }}/deb/"
+
+pod_cidr: "10.244.0.0/16"      # must match the CIDR written into the vendored Calico custom-resources.yaml
+service_cidr: "10.96.0.0/12"
+
+# Calico enforces NetworkPolicy (Flannel does not; see D2).
+cni: calico
+calico_version: "v3.33.0"

@@ -6,7 +6,6 @@
 crash.log
 override.tf
 override.tf.json
-terraform/terraform.tfvars
 *.auto.tfvars
 
 # Ansible

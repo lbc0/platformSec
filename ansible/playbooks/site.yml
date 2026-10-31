@@ -1,0 +1,25 @@
+- name: Base configuration and SSH hardening (all nodes)
+  hosts: all
+  become: true
+  roles:
+    - base
+    - ssh_hardening
+
+- name: Container runtime and Kubernetes packages
+  hosts: control_plane:workers
+  become: true
+  roles:
+    - containerd
+    - kubernetes_common
+
+- name: Bootstrap the control plane
+  hosts: control_plane
+  become: true
+  roles:
+    - control_plane
+
+- name: Join the workers
+  hosts: workers
+  become: true
+  roles:
+    - worker

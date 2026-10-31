@@ -1,0 +1,10 @@
+# Managed by Ansible: lab hardening
+PermitRootLogin no
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PubkeyAuthentication yes
+AuthenticationMethods publickey
+X11Forwarding no
+MaxAuthTries 3
+LoginGraceTime 20
+AllowUsers {{ admin_user }}

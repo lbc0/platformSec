@@ -1,0 +1,5 @@
+- name: Join the cluster (skipped if the kubelet is already configured)
+  ansible.builtin.command: "{{ hostvars[groups['control_plane'][0]].join_command }}"
+  args:
+    creates: /etc/kubernetes/kubelet.conf
+  no_log: true

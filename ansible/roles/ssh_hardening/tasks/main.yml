@@ -1,0 +1,15 @@
+- name: "Install hardening drop-in (00- prefix wins: sshd uses the first value it reads)"
+  ansible.builtin.template:
+    src: 00-hardening.conf.j2
+    dest: /etc/ssh/sshd_config.d/00-hardening.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart ssh
+
+- name: Validate the full sshd configuration before restarting
+  ansible.builtin.command: sshd -t
+  changed_when: false
+
+- name: Apply now
+  ansible.builtin.meta: flush_handlers

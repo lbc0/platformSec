@@ -1,0 +1,3 @@
+5306c2c6d9fd6762d804f9da51c049b8269c33498a364c5df0eed555aba026bd  ansible/roles/control_plane/files/calico-v3.33.0/crds.yaml
+0a792a9f29387e2202e6246a7ac2a16d85dc16e36375a3a2753c4614eab36288  ansible/roles/control_plane/files/calico-v3.33.0/custom-resources.yaml
+aef423b36aef8cf86567f92bbe5eea4b4ca105a6fc7dbf43de599c6fa70388ba  ansible/roles/control_plane/files/calico-v3.33.0/tigera-operator.yaml

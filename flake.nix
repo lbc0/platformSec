@@ -27,6 +27,7 @@
         git
         gnumake
         openssh
+        openssl
         xorriso
         libvirt # virsh
       ];

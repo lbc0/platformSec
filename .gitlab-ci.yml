@@ -59,6 +59,7 @@ build-image:
     STORAGE_DRIVER: vfs
     BUILDAH_ISOLATION: chroot
   script:
+    - id
     - buildah build --format oci -f app/Dockerfile $EXTRA_BUILD_ARGS -t localhost/maliki:$CI_COMMIT_SHORT_SHA app
     - buildah push localhost/maliki:$CI_COMMIT_SHORT_SHA oci-archive:image.tar
   artifacts:

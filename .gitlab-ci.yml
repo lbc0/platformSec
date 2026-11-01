@@ -53,6 +53,8 @@ build-image:
   image:
     name: $BUILDAH_IMAGE
     entrypoint: [""]
+    docker:
+      user: root
   variables:
     STORAGE_DRIVER: vfs
     BUILDAH_ISOLATION: chroot

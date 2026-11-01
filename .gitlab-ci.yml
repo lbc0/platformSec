@@ -47,7 +47,7 @@ secret-scan:
   script:
     - trivy fs --scanners secret --exit-code 1 --skip-dirs terraform/.terraform --skip-dirs tests .
 
-# --------------- stage: build (rootless, nothing is pushed) ----------------
+# ---------------- stage: build (rootless, nothing is pushed) ----------------
 build-image:
   stage: build
   image:

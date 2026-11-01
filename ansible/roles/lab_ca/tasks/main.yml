@@ -1,0 +1,32 @@
+- name: Install the lab CA into the OS trust store
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../pki/lab-ca.crt"
+    dest: /usr/local/share/ca-certificates/lab-ca.crt
+    mode: "0644"
+  notify: Update CA certificates
+
+- name: containerd per-registry trust (cluster nodes only)
+  when: inventory_hostname in groups['control_plane'] + groups['workers']
+  block:
+    - name: certs.d directory for Harbor
+      ansible.builtin.file:
+        path: "/etc/containerd/certs.d/{{ harbor_hostname }}"
+        state: directory
+        mode: "0755"
+
+    - name: CA file next to hosts.toml
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../pki/lab-ca.crt"
+        dest: "/etc/containerd/certs.d/{{ harbor_hostname }}/ca.crt"
+        mode: "0644"
+
+    - name: hosts.toml for Harbor
+      ansible.builtin.copy:
+        dest: "/etc/containerd/certs.d/{{ harbor_hostname }}/hosts.toml"
+        mode: "0644"
+        content: |
+          server = "https://{{ harbor_hostname }}"
+
+          [host."https://{{ harbor_hostname }}"]
+            capabilities = ["pull", "resolve"]
+            ca = "ca.crt"

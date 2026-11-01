@@ -11,3 +11,5 @@ service_cidr: "10.96.0.0/12"
 # Calico enforces NetworkPolicy (Flannel does not; see D2).
 cni: calico
 calico_version: "v3.33.0"
+
+harbor_hostname: "harbor.{{ domain_name }}"

@@ -1,0 +1,148 @@
+- name: Docker apt key
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    dest: /etc/apt/keyrings/docker.asc
+    mode: "0644"
+
+- name: Docker apt repository
+  ansible.builtin.deb822_repository:
+    name: docker
+    types: deb
+    uris: https://download.docker.com/linux/ubuntu
+    suites: "{{ ansible_facts['distribution_release'] }}"
+    components: stable
+    architectures: amd64
+    signed_by: /etc/apt/keyrings/docker.asc
+    state: present
+
+- name: Install Docker Engine and the compose plugin
+  ansible.builtin.apt:
+    name: [docker-ce, docker-ce-cli, containerd.io, docker-compose-plugin]
+    state: present
+    update_cache: true
+    lock_timeout: 300
+
+- name: Check the installer hash on the controller before shipping it
+  ansible.builtin.stat:
+    path: "{{ lookup('env', 'HOME') }}/.cache/lab/{{ harbor_installer_file }}"
+    checksum_algorithm: sha256
+  register: installer
+  delegate_to: localhost
+  become: false
+
+- name: Refuse an installer that does not match the pinned hash
+  ansible.builtin.assert:
+    that:
+      - installer.stat.exists
+      - installer.stat.checksum == harbor_installer_sha256
+    fail_msg: "Harbor installer missing or hash mismatch. Run scripts/fetch-harbor.sh and pin the hash."
+
+- name: Unpack the offline installer to /opt/harbor
+  ansible.builtin.unarchive:
+    src: "{{ lookup('env', 'HOME') }}/.cache/lab/{{ harbor_installer_file }}"
+    dest: /opt
+    creates: /opt/harbor/harbor.yml.tmpl
+
+- name: TLS material directory
+  ansible.builtin.file:
+    path: /etc/harbor/pki
+    state: directory
+    mode: "0700"
+
+- name: Server certificate (public)
+  ansible.builtin.copy:
+    src: "{{ lookup('env', 'HOME') }}/.local/share/lab-pki/harbor.crt"
+    dest: /etc/harbor/pki/harbor.crt
+    mode: "0644"
+
+- name: Server private key (from outside the repo)
+  ansible.builtin.copy:
+    src: "{{ lookup('env', 'HOME') }}/.local/share/lab-pki/harbor.key"
+    dest: /etc/harbor/pki/harbor.key
+    mode: "0600"
+  no_log: true
+
+- name: Start from Harbor's own template (field names track the installed version)
+  ansible.builtin.copy:
+    src: /opt/harbor/harbor.yml.tmpl
+    dest: /opt/harbor/harbor.yml
+    remote_src: true
+    mode: "0600"
+    force: false
+
+- name: Patch the settings we own
+  ansible.builtin.replace:
+    path: /opt/harbor/harbor.yml
+    regexp: "{{ item.regexp }}"
+    replace: "{{ item.replace }}"
+  loop:
+    - { regexp: '^hostname: .*$', replace: 'hostname: {{ harbor_hostname }}' }
+    - { regexp: '^(\s*)certificate: .*$', replace: '\1certificate: /etc/harbor/pki/harbor.crt' }
+    - { regexp: '^(\s*)private_key: .*$', replace: '\1private_key: /etc/harbor/pki/harbor.key' }
+    - { regexp: '^harbor_admin_password: .*$', replace: 'harbor_admin_password: {{ harbor_admin_password }}' }
+  loop_control:
+    label: "{{ item.regexp }}"
+  no_log: true
+
+- name: Patch the database password (the first `password:` under database)
+  ansible.builtin.replace:
+    path: /opt/harbor/harbor.yml
+    regexp: '(?m)^(database:\s*\n(?:\s*#.*\n)*\s*password: ).*$'
+    replace: '\g<1>{{ harbor_db_password }}'
+  no_log: true
+
+- name: Install Harbor with the Trivy scanner (runs once)
+  ansible.builtin.command: ./install.sh --with-trivy
+  args:
+    chdir: /opt/harbor
+    creates: /opt/harbor/docker-compose.yml
+
+- name: Wait until Harbor reports healthy
+  ansible.builtin.uri:
+    url: "https://{{ harbor_hostname }}/api/v2.0/health"
+    ca_path: /usr/local/share/ca-certificates/lab-ca.crt
+    return_content: true
+  register: health
+  until: health.status == 200 and ('"status":"healthy"' in (health.content | replace(' ', '')))
+  retries: 30
+  delay: 10
+
+- name: Create the project (public pulls are a LAB-ONLY shortcut)
+  ansible.builtin.uri:
+    url: "https://{{ harbor_hostname }}/api/v2.0/projects"
+    method: POST
+    user: admin
+    password: "{{ harbor_admin_password }}"
+    force_basic_auth: true
+    ca_path: /usr/local/share/ca-certificates/lab-ca.crt
+    body_format: json
+    body:
+      project_name: "{{ harbor_project }}"
+      metadata:
+        public: "true"
+    status_code: [201, 409]
+  no_log: true
+
+- name: Create the CI robot account (push + pull on this project only)
+  ansible.builtin.uri:
+    url: "https://{{ harbor_hostname }}/api/v2.0/robots"
+    method: POST
+    user: admin
+    password: "{{ harbor_admin_password }}"
+    force_basic_auth: true
+    ca_path: /usr/local/share/ca-certificates/lab-ca.crt
+    body_format: json
+    body:
+      name: ci
+      description: "GitLab CI pipeline"
+      duration: -1
+      level: project
+      secret: "{{ harbor_ci_robot_secret }}"
+      permissions:
+        - kind: project
+          namespace: "{{ harbor_project }}"
+          access:
+            - { resource: repository, action: push }
+            - { resource: repository, action: pull }
+    status_code: [201, 409]
+  no_log: true

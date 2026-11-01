@@ -33,12 +33,33 @@
   register: containerd_default
   changed_when: false
 
-- name: Write config with the systemd cgroup driver enabled
+- name: Write the config only if it does not exist yet
   ansible.builtin.copy:
-    content: "{{ containerd_default.stdout | replace('SystemdCgroup = false', 'SystemdCgroup = true') }}\n"
+    content: "{{ containerd_default.stdout }}\n"
     dest: /etc/containerd/config.toml
     mode: "0644"
+    force: false
   notify: Restart containerd
+
+- name: Use the systemd cgroup driver
+  ansible.builtin.replace:
+    path: /etc/containerd/config.toml
+    regexp: 'SystemdCgroup = false'
+    replace: 'SystemdCgroup = true'
+  notify: Restart containerd
+
+- name: Point the CRI at /etc/containerd/certs.d (skipped if already set)
+  ansible.builtin.replace:
+    path: /etc/containerd/config.toml
+    regexp: "^(\\s*)config_path = ['\"]{2}\\s*$"
+    replace: "\\1config_path = '/etc/containerd/certs.d'"
+  notify: Restart containerd
+
+- name: certs.d root
+  ansible.builtin.file:
+    path: /etc/containerd/certs.d
+    state: directory
+    mode: "0755"
 
 - name: Enable and start containerd
   ansible.builtin.systemd:

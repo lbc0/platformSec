@@ -12,7 +12,7 @@ output "ansible_inventory" {
         workers = {
           hosts = { for k, v in local.vms : k => { ansible_host = v.ip } if v.role == "worker" }
         }
-        registry = {
+        harbor = {
           hosts = { for k, v in local.vms : k => { ansible_host = v.ip } if v.role == "registry" }
         }
       }

@@ -14,7 +14,10 @@
   ansible.builtin.lineinfile:
     path: /etc/hosts
     regexp: '^{{ hostvars[item].ansible_host | regex_escape }}\s'
-    line: "{{ hostvars[item].ansible_host }} {{ item }}.{{ domain_name }} {{ item }}"
+    line: >-
+      {{ hostvars[item].ansible_host }}
+      {{ item }}.{{ domain_name }} {{ item }}
+      {{- ' harbor.' ~ domain_name if item == 'registry' else '' }}
   loop: "{{ groups['all'] }}"
 
 - name: Disable swap now

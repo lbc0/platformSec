@@ -4,6 +4,7 @@
   roles:
     - base
     - ssh_hardening
+    - lab_ca
 
 - name: Container runtime and Kubernetes packages
   hosts: control_plane:workers
@@ -23,3 +24,9 @@
   become: true
   roles:
     - worker
+
+- name: Harbor registry
+  hosts: harbor
+  become: true
+  roles:
+    - registry

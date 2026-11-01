@@ -107,7 +107,8 @@
   retries: 30
   delay: 10
 
-- name: Create the project (public pulls are a LAB-ONLY shortcut)
+# ---------- project ----------
+- name: Create the project (409 = already exists)
   ansible.builtin.uri:
     url: "https://{{ harbor_hostname }}/api/v2.0/projects"
     method: POST
@@ -121,6 +122,58 @@
       metadata:
         public: "true"
     status_code: [201, 409]
+  no_log: true
+
+- name: Enforce project visibility (LAB-ONLY public pulls; fixes drift)
+  ansible.builtin.uri:
+    url: "https://{{ harbor_hostname }}/api/v2.0/projects/{{ harbor_project }}"
+    method: PUT
+    user: admin
+    password: "{{ harbor_admin_password }}"
+    force_basic_auth: true
+    ca_path: /usr/local/share/ca-certificates/lab-ca.crt
+    body_format: json
+    body:
+      metadata:
+        public: "true"
+    status_code: 200
+  no_log: true
+
+- name: Look up the project
+  ansible.builtin.uri:
+    url: "https://{{ harbor_hostname }}/api/v2.0/projects/{{ harbor_project }}"
+    user: admin
+    password: "{{ harbor_admin_password }}"
+    force_basic_auth: true
+    ca_path: /usr/local/share/ca-certificates/lab-ca.crt
+    return_content: true
+  register: harbor_proj
+  no_log: true
+
+# ---------- CI robot (recreated every run so permissions and secret match the code) ----------
+- name: List the project's robot accounts
+  ansible.builtin.uri:
+    url: "https://{{ harbor_hostname }}/api/v2.0/robots?page_size=100&q=Level%3Dproject%2CProjectID%3D{{ harbor_proj.json.project_id }}"
+    user: admin
+    password: "{{ harbor_admin_password }}"
+    force_basic_auth: true
+    ca_path: /usr/local/share/ca-certificates/lab-ca.crt
+    return_content: true
+  register: harbor_robots
+  no_log: true
+
+- name: Delete the existing CI robot
+  ansible.builtin.uri:
+    url: "https://{{ harbor_hostname }}/api/v2.0/robots/{{ item.id }}"
+    method: DELETE
+    user: admin
+    password: "{{ harbor_admin_password }}"
+    force_basic_auth: true
+    ca_path: /usr/local/share/ca-certificates/lab-ca.crt
+    status_code: [200, 404]
+  loop: "{{ harbor_robots.json | selectattr('name', 'equalto', 'robot$' ~ harbor_project ~ '+ci') | list }}"
+  loop_control:
+    label: "robot id {{ item.id }}"
   no_log: true
 
 - name: Create the CI robot account (push + pull on this project only)
@@ -144,5 +197,31 @@
           access:
             - { resource: repository, action: push }
             - { resource: repository, action: pull }
-    status_code: [201, 409]
+    status_code: 201
+    return_content: true
+  register: harbor_robot_new
+  no_log: true
+
+- name: Force the robot secret to the vault value (create did not keep it)
+  ansible.builtin.uri:
+    url: "https://{{ harbor_hostname }}/api/v2.0/robots/{{ harbor_robot_new.json.id }}"
+    method: PATCH
+    user: admin
+    password: "{{ harbor_admin_password }}"
+    force_basic_auth: true
+    ca_path: /usr/local/share/ca-certificates/lab-ca.crt
+    body_format: json
+    body:
+      secret: "{{ harbor_ci_robot_secret }}"
+    status_code: 200
+  no_log: true
+
+- name: Verify the vault secret really authenticates as the robot
+  ansible.builtin.uri:
+    url: "https://{{ harbor_hostname }}/v2/"
+    user: "{{ 'robot$' ~ harbor_project ~ '+ci' }}"
+    password: "{{ harbor_ci_robot_secret }}"
+    force_basic_auth: true
+    ca_path: /usr/local/share/ca-certificates/lab-ca.crt
+    status_code: 200
   no_log: true

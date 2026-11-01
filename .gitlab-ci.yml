@@ -57,11 +57,10 @@ build-image:
     STORAGE_DRIVER: vfs
     BUILDAH_ISOLATION: chroot
   script:
-    - id
     - buildah build --format oci -f app/Dockerfile $EXTRA_BUILD_ARGS -t localhost/maliki:$CI_COMMIT_SHORT_SHA app
-    - buildah push localhost/maliki:$CI_COMMIT_SHORT_SHA oci-archive:image.tar
+    - buildah push localhost/maliki:$CI_COMMIT_SHORT_SHA oci:image-oci
   artifacts:
-    paths: [image.tar]
+    paths: [image-oci]
     expire_in: 1 hour
 
 # ---------------- stage: image-scan (SBOM first, then the gate) ----------------
@@ -70,8 +69,8 @@ image-scan:
   stage: image-scan
   dependencies: [build-image]
   script:
-    - trivy image --input image.tar --format cyclonedx --output sbom.cdx.json
-    - trivy image --input image.tar --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1
+    - trivy image --input image-oci --format cyclonedx --output sbom.cdx.json
+    - trivy image --input image-oci --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1
   artifacts:
     when: always
     paths: [sbom.cdx.json]
@@ -86,7 +85,7 @@ push-image:
     entrypoint: [""]
   dependencies: [build-image]
   script:
-    - skopeo copy --dest-cert-dir pki --dest-creds "$HARBOR_ROBOT_USER:$HARBOR_ROBOT_PASSWORD" --digestfile digest.txt oci-archive:image.tar docker://$IMAGE_REPO:$CI_COMMIT_SHORT_SHA
+    - skopeo copy --dest-cert-dir pki --dest-creds "$HARBOR_ROBOT_USER:$HARBOR_ROBOT_PASSWORD" --digestfile digest.txt oci:image-oci docker://$IMAGE_REPO:$CI_COMMIT_SHORT_SHA
     - echo "IMAGE_DIGEST=$(cat digest.txt)" > push.env
   artifacts:
     reports:

@@ -85,7 +85,6 @@ push-image:
     entrypoint: [""]
   dependencies: [build-image]
   script:
-    - - 'echo "user=[$HARBOR_ROBOT_USER] pwlen=${#HARBOR_ROBOT_PASSWORD}"'
     - skopeo copy --dest-cert-dir pki --dest-creds "$HARBOR_ROBOT_USER:$HARBOR_ROBOT_PASSWORD" --digestfile digest.txt oci:image-oci docker://$IMAGE_REPO:$CI_COMMIT_SHORT_SHA
     - echo "IMAGE_DIGEST=$(cat digest.txt)" > push.env
   artifacts:

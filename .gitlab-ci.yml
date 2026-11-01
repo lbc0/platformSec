@@ -32,7 +32,7 @@ workflow:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
-# ---------------- stage ----------------
+# --------------- stage ----------------
 iac-scan:
   extends: .trivy
   stage: scan

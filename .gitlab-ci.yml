@@ -38,7 +38,8 @@ iac-scan:
   stage: scan
   script:
     - trivy --version
-    - trivy config --exit-code 1 --severity HIGH,CRITICAL terraform/ app/
+    - trivy config --exit-code 1 --severity HIGH,CRITICAL terraform/
+    - trivy config --exit-code 1 --severity HIGH,CRITICAL app/
 
 secret-scan:
   extends: .trivy

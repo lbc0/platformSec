@@ -121,8 +121,7 @@ Run `make versions` to print the versions installed in your shell.
 │   └── roles/                  # base, ssh_hardening, lab_ca, containerd,
 │                               # kubernetes_common, control_plane, worker, registry
 ├── pki/                        # PUBLIC certs only: lab-ca.crt, cosign.pub
-├── scripts/                    # vendor-calico, make-lab-pki, fetch-harbor, versions
-└── docs/evidence/              # test output and screenshots
+└── scripts/                    # vendor-calico, make-lab-pki, fetch-harbor, versions
 ```
 
 ## Prerequisites
@@ -185,7 +184,7 @@ curl -L -o ~/Downloads/noble-server-cloudimg-amd64.img \
 Create the working folders:
 
 ```bash
-mkdir -p terraform/templates ansible/{inventory,playbooks,roles} scripts docs/evidence
+mkdir -p terraform/templates ansible/{inventory,playbooks,roles} scripts 
 ```
 
 ### 1.3 Terraform: virtual machines

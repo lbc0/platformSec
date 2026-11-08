@@ -431,8 +431,3 @@ kubectl get nodes -o wide
 | Nodes cannot pull from Harbor | Check `/etc/containerd/certs.d/harbor.lab.test/` and `config_path` in `config.toml` |
 | `terraform apply` fails on the image | Check `base_image_path` points at the downloaded `.img` |
 
----
-
-## License
-
-Choose a license (for example MIT) and add a `LICENSE` file.

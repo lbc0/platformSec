@@ -30,6 +30,3 @@ cosign.key
 .trivycache/
 result
 .devshell*
-
-# App runtime data (personal library, uploaded PDFs, backups)
-app/data/
